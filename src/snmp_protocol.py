@@ -182,7 +182,7 @@ class GetRequest(SNMPMessage):
         https://clemson-cpsc-3600.github.io/simple-SNMP-template/protocol.html#get-request
         """
         payload = struct.pack("!B", len(self.oids))
-        oid_bytes = encode_oid(self.oids)
+        oid_bytes = encode_oid(self.oids[0])
         payload += struct.pack("!B", len(oid_bytes)) + oid_bytes
         total_size = MESSAGE_HEADER_SIZE + len(payload)
         header = struct.pack("!IIB", total_size, self.request_id, self.pdu_type)
