@@ -1,0 +1,71 @@
+# Codex configuration for this course repository.
+#
+# Codex reads this file when your current working directory is inside this
+# repo. Your global ~/.codex/config.toml still applies for anything NOT set
+# here (login credentials, default editor, etc.) — this file only overrides
+# the settings below.
+
+# Require Codex to ask before running shell commands or editing files.
+# This is slower than "never" but gives you a chance to see what Codex is
+# about to do before it happens. Don't reflexively accept — read the plan.
+approval_policy = "on-request"
+
+# Restrict filesystem writes to this workspace. Codex cannot edit files
+# outside the repo without escalating to you first.
+sandbox = "workspace-write"
+
+# Default reasoning effort. "medium" is a sensible baseline for coursework;
+# raise to "high" for harder problems, lower to "low" for quick syntax help.
+model_reasoning_effort = "medium"
+
+# Feature flag: let Codex pick up nested AGENTS.md files in assignment
+# subdirectories if your instructor ships them.
+[features]
+child_agents_md = true
+codex_hooks = true
+
+# Hook commands are bootstrapped with `python3`, which exists out-of-the-box on
+# macOS (Xcode CLI tools) and Linux, and is registered by the python.org and
+# Microsoft Store installers on Windows. The launcher (.codex/hooks/_run.py)
+# then re-execs into ./venv/bin/python (POSIX) or .\venv\Scripts\python.exe
+# (Windows) so the capture site-customize is loaded.
+
+[[hooks.SessionStart]]
+matcher = ".*"
+[[hooks.SessionStart.hooks]]
+type = "command"
+command = "python3 .codex/hooks/_run.py session_start"
+timeout = 30
+
+[[hooks.UserPromptSubmit]]
+[[hooks.UserPromptSubmit.hooks]]
+type = "command"
+command = "python3 .codex/hooks/_run.py user_prompt_submit"
+timeout = 30
+
+[[hooks.PreToolUse]]
+matcher = ".*"
+[[hooks.PreToolUse.hooks]]
+type = "command"
+command = "python3 .codex/hooks/_run.py pre_tool_use"
+timeout = 30
+
+[[hooks.PermissionRequest]]
+matcher = ".*"
+[[hooks.PermissionRequest.hooks]]
+type = "command"
+command = "python3 .codex/hooks/_run.py permission_request"
+timeout = 30
+
+[[hooks.PostToolUse]]
+matcher = ".*"
+[[hooks.PostToolUse.hooks]]
+type = "command"
+command = "python3 .codex/hooks/_run.py post_tool_use"
+timeout = 30
+
+[[hooks.Stop]]
+[[hooks.Stop.hooks]]
+type = "command"
+command = "python3 .codex/hooks/_run.py stop"
+timeout = 30
