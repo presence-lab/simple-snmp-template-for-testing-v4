@@ -185,8 +185,6 @@ class GetRequest(SNMPMessage):
         for oid in self.oids:
             oid_bytes = encode_oid(oid)
             payload += struct.pack("!B", len(oid_bytes)) + oid_bytes
-
-        payload += struct.pack("!B", len(oid_bytes)) + oid_bytes
         total_size = MESSAGE_HEADER_SIZE + len(payload)
         header = struct.pack("!IIB", total_size, self.request_id, self.pdu_type)
         return header + payload
