@@ -102,10 +102,18 @@ def encode_value(value: Any, value_type: ValueType) -> bytes:
     unsigned pitfalls, reference implementation):
     https://clemson-cpsc-3600.github.io/simple-SNMP-template/protocol.html#value-encoding
     """
-    raise NotImplementedError(
-        "Implement encode_value — see "
-        "https://clemson-cpsc-3600.github.io/simple-SNMP-template/protocol.html#value-encoding"
-    )
+    if value_type == ValueType.INTEGER:
+        return struct.pack('!i', value)   # signed
+    elif value_type == ValueType.STRING:
+        if isinstance(value, bytes):
+            return value                  # already bytes, pass through
+        return value.encode('utf-8')
+    elif value_type == ValueType.COUNTER:
+        return struct.pack('!I', value)   # UNSIGNED
+    elif value_type == ValueType.TIMETICKS:
+        return struct.pack('!I', value)   # UNSIGNED
+    else:
+        raise ValueError(f"Unknown value type: {value_type}")
 
 def decode_value(value_bytes: bytes, value_type: ValueType) -> Any:
     """Decode bytes into a Python value for the given SNMP ValueType.
