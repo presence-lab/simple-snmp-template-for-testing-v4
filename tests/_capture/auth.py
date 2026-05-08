@@ -29,8 +29,10 @@ HINTS = {
         "Subsequent test runs will push automatically."
     ),
     "rejected": (
-        "The remote has commits you don't. Run `git pull --rebase` to integrate\n"
-        "them, then run the tests again."
+        "Your process-tracking history is out of sync with the remote and\n"
+        "the automatic recovery couldn't reconcile it. Your code is safe --\n"
+        "this only affects the activity log your instructor sees. If this\n"
+        "message persists across several test runs, contact your instructor."
     ),
 }
 
