@@ -47,19 +47,17 @@ class DiffStats:
 
 
 def push_auto_track_background(repo: Path, log_path: Path) -> None:
-    """Detached push of refs/auto-track/snapshots. Mirrors v1 push_background
-    pattern. Best-effort -- never raises (open() failures and Popen failures
-    both caught locally; callers can rely on this being safe to invoke even
-    on a disk-full / permission-denied system).
+    """Detached push of the local refs/auto-track/snapshots ref to the
+    remote refs/heads/auto-track branch. Mirrors v1 push_background pattern.
+    Best-effort -- never raises (open() failures and Popen failures both
+    caught locally; callers can rely on this being safe to invoke even on
+    a disk-full / permission-denied system).
 
-    Pushes to two destinations atomically:
-      - refs/auto-track/snapshots (custom ref, hidden from GitHub UI)
-      - refs/heads/auto-track     (real branch, protectable via Ruleset)
-
-    The branch destination is what GitHub's Rulesets attach to so the
-    instructor-org ruleset can block force-pushes and deletions. --atomic
-    ensures both refs update or neither does, so a force-push rejected on
-    the protected branch can't leave the unprotected custom ref ahead.
+    The remote destination is `refs/heads/auto-track` (a real branch) so
+    GitHub Rulesets can attach to it and block force-pushes and deletions.
+    Locally we keep the snapshot ref under `refs/auto-track/snapshots` to
+    avoid colliding with anything a student might do on a checkout-able
+    branch — the local ref is never checked out.
     """
     env = {**os.environ, **GIT_ENV}
     if run_git(["remote", "get-url", "origin"], cwd=repo, timeout=5.0).returncode != 0:
@@ -82,8 +80,7 @@ def push_auto_track_background(repo: Path, log_path: Path) -> None:
             kwargs["start_new_session"] = True
         try:
             subprocess.Popen(
-                ["git", "push", "--atomic", "origin",
-                 f"{AUTO_TRACK_REF}:{AUTO_TRACK_REF}",
+                ["git", "push", "origin",
                  f"{AUTO_TRACK_REF}:refs/heads/auto-track"],
                 **kwargs,
             )
@@ -218,7 +215,7 @@ def fetch_auto_track(repo: Path) -> Optional[str]:
     # destination. See spec §6 step 4.
     run_git(["update-ref", "-d", AUTO_TRACK_ORIGIN_TIP_REF], cwd=repo, timeout=5.0)
 
-    refspec = f"+{AUTO_TRACK_REF}:{AUTO_TRACK_ORIGIN_TIP_REF}"
+    refspec = f"+refs/heads/auto-track:{AUTO_TRACK_ORIGIN_TIP_REF}"
     result = run_git(
         ["fetch", "--no-tags", "--force", "--no-write-fetch-head",
          "origin", refspec],

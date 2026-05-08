@@ -105,7 +105,7 @@ def test_fetch_auto_track_no_remote_ref_returns_none(tmp_git_repo_with_bare_remo
 
 def test_fetch_auto_track_pulls_remote_ref(tmp_git_repo_with_bare_remote):
     work, bare = tmp_git_repo_with_bare_remote
-    # Push a snapshot ref to the bare remote
+    # Push a snapshot to the bare remote's refs/heads/auto-track branch
     head_sha = subprocess.run(
         ["git", "-C", str(work), "rev-parse", "HEAD"],
         capture_output=True, text=True, check=True).stdout.strip()
@@ -114,7 +114,7 @@ def test_fetch_auto_track_pulls_remote_ref(tmp_git_repo_with_bare_remote):
          "refs/auto-track/snapshots", head_sha], check=True)
     subprocess.run(
         ["git", "-C", str(work), "push", "origin",
-         "refs/auto-track/snapshots:refs/auto-track/snapshots"], check=True)
+         "refs/auto-track/snapshots:refs/heads/auto-track"], check=True)
     # Drop the local ref so fetch is the only way to get it
     subprocess.run(
         ["git", "-C", str(work), "update-ref", "-d",
@@ -441,7 +441,7 @@ def test_snapshot_fresh_clone_with_origin_tip_succeeds(tmp_git_repo_with_bare_re
     assert snap1 is not None
     push = subprocess.run(
         ["git", "-C", str(work), "push", "origin",
-         f"{git_ops.AUTO_TRACK_REF}:{git_ops.AUTO_TRACK_REF}"],
+         f"{git_ops.AUTO_TRACK_REF}:refs/heads/auto-track"],
         capture_output=True, text=True)
     assert push.returncode == 0, push.stderr
     # Simulate a fresh clone on machine 2: drop the local snapshot ref so
@@ -482,7 +482,7 @@ def test_push_auto_track_background_is_fire_and_forget(tmp_git_repo_with_bare_re
     while time.time() < deadline:
         result = subprocess.run(
             ["git", "-C", str(bare), "rev-parse", "--verify",
-             "refs/auto-track/snapshots"],
+             "refs/heads/auto-track"],
             capture_output=True, text=True)
         if result.returncode == 0:
             break

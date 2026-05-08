@@ -314,7 +314,8 @@ def test_full_pytest_invocation_pushes_to_remote(repo_with_remote):
         f"stderr={result.stderr}")
 
     # Verify the background push propagated to the bare remote.
-    assert _wait_for_remote_ref(bare, "refs/auto-track/snapshots"), (
+    # Push target is refs/heads/auto-track (the protectable branch).
+    assert _wait_for_remote_ref(bare, "refs/heads/auto-track"), (
         "background push did not propagate to bare remote within 10s")
 
 
