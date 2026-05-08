@@ -23,10 +23,13 @@ instructor can read these traces.
   test run, every Python invocation inside the project venv (via an
   `atexit` hook installed into the venv's `sitecustomize.py`), and every
   git commit (via a per-repo `.githooks/post-commit` hook). All three
-  triggers record to a separate ref `refs/auto-track/snapshots` rather
-  than to your branch. None of them install anything outside the project
-  directory; see `PROCESS_TRACKING.md` for the trigger list and scoping
-  details.
+  triggers record locally to `refs/auto-track/snapshots` (a side ref,
+  not on your working branches) and push to the `auto-track` branch on
+  your remote. The branch is visible in your repo's branch list on
+  GitHub — that's expected; the remote branch is the canonical copy
+  your instructor reads. None of these triggers install anything outside
+  the project directory; see `PROCESS_TRACKING.md` for the trigger list
+  and scoping details.
 - Any commit reachable from your current branch HEAD when `pytest` runs —
   including commits on local branches you have not pushed yourself. We
   record the SHA of your current commit alongside each snapshot so that
@@ -102,15 +105,20 @@ The primary way to audit your local capture trail:
 python -m tests._capture.audit
 ```
 
-This summarizes every snapshot recorded on `refs/auto-track/snapshots`,
-including timestamps, test counts, and the `current_head_sha` observed at
-each run.
+This summarizes every snapshot recorded on the local
+`refs/auto-track/snapshots` ref, including timestamps, test counts, and the
+`current_head_sha` observed at each run.
 
 For power users who prefer raw git plumbing:
 
 ```bash
+# Local copy
 git log refs/auto-track/snapshots --format="%h %cI %s"
 git show <sha>          # full body of a single snapshot
+
+# Pushed copy (what your instructor sees)
+git fetch origin auto-track
+git log origin/auto-track --format="%h %cI %s"
 ```
 
 ## If Codex is down or you prefer not to use it

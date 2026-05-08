@@ -92,6 +92,7 @@ def main() -> int:
             "PROCESS_TRACKING.md",
             "AGENTS.md",
             "AI_POLICY.md",
+            ".ai-traces/external-attestation.txt",
             ".codex/config.toml",
             ".codex/hooks/_common.py",
             ".codex/hooks/stop.py",

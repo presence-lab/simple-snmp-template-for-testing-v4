@@ -33,7 +33,7 @@ Local AI-agent traces (`.ai-traces/**/*.jsonl`) are also captured when present. 
 - Files outside the allowlist above
 - Your hostname (only a hash)
 - Keystrokes, timing within a session, cursor position, or anything your editor sees
-- AI assistant interactions from tools without a local adapter (ChatGPT web, Codex cloud, Claude web, Copilot Chat, etc.). See [AI_POLICY.md](AI_POLICY.md); uncaptured tool use should be recorded in `.ai-traces/external-attestation.txt`.
+- AI assistant interactions from tools without a local adapter (ChatGPT web, Codex cloud, Claude web, Copilot Chat, etc.). See [AI_POLICY.md](AI_POLICY.md); uncaptured tool use should be recorded in `.ai-traces/external-attestation.txt` (which is shipped pre-seeded — open it and add your entries, or write "no uncaptured AI use" if that's the case). Deleting or emptying that file is detected by the integrity check.
 - Your Codex OpenAI token (`.codex/auth.json` is gitignored).
 
 ## Why this exists

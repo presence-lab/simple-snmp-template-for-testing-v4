@@ -1,12 +1,23 @@
 """Audit capture-layer integrity by comparing file hashes against INTEGRITY_HASHES.txt.
 
+There are two tiers of tracking:
+
+- TRACKED files have their content hashes pinned. Any modification, even
+  whitespace, is reported as MODIFIED. These are course-infrastructure
+  files students should never edit.
+- SOFT_TRACKED files are checked only for presence and non-emptiness; the
+  content is expected to be student-edited. Used for files like
+  `.ai-traces/external-attestation.txt` where deletion or wholesale
+  emptying is the signal we care about, not content changes.
+
 Usage:
     python tools/verify_integrity.py            # check current file hashes
     python tools/verify_integrity.py --update   # regenerate INTEGRITY_HASHES.txt
                                                 # (instructor use only, after
                                                 # intentional capture changes)
 
-Exit code 0 on match, 1 on mismatch, 2 on missing file.
+Exit code 0 on match, 1 on mismatch / soft-track violation, 2 on missing
+hard-tracked file or missing INTEGRITY_HASHES.txt.
 """
 import hashlib
 import sys
@@ -52,6 +63,14 @@ TRACKED = [
     "tests/_capture/state.py",
     "tests/_capture/watchdog.py",
     ".githooks/post-commit",
+]
+
+# Files whose presence + non-emptiness is required, but whose content is
+# student-edited and therefore NOT hash-pinned. Listed here primarily to
+# detect students who delete the file or empty it to evade detection of
+# non-codex AI use.
+SOFT_TRACKED = [
+    ".ai-traces/external-attestation.txt",
 ]
 
 
@@ -107,16 +126,31 @@ def main() -> int:
     mismatches = [p for p in current if current[p] != expected.get(p)]
     missing = [p for p in expected if p not in current]
 
-    if mismatches or missing:
+    soft_missing = []
+    soft_empty = []
+    for rel in SOFT_TRACKED:
+        p = ROOT / rel
+        if not p.exists():
+            soft_missing.append(rel)
+        elif p.stat().st_size == 0:
+            soft_empty.append(rel)
+
+    if mismatches or missing or soft_missing or soft_empty:
         for p in mismatches:
             print(f"MODIFIED: {p}")
             print(f"  expected: {expected.get(p)}")
             print(f"  actual:   {current[p]}")
         for p in missing:
             print(f"MISSING_FROM_REPO: {p}")
+        for p in soft_missing:
+            print(f"SOFT_MISSING: {p}")
+        for p in soft_empty:
+            print(f"SOFT_EMPTY: {p}")
         return 1
 
     print(f"OK - {len(current)} capture files unchanged.")
+    if SOFT_TRACKED:
+        print(f"OK - {len(SOFT_TRACKED)} soft-tracked file(s) present and non-empty.")
     return 0
 
 
