@@ -16,6 +16,8 @@ ROOT = Path(__file__).resolve().parent.parent
 HASH_FILE = ROOT / "tools" / "INTEGRITY_HASHES.txt"
 
 TRACKED = [
+    "AGENTS.md",
+    "AI_POLICY.md",
     ".codex/config.toml",
     ".codex/hooks/__init__.py",
     ".codex/hooks/_common.py",

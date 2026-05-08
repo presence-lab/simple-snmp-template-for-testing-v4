@@ -42,6 +42,7 @@ def take_snapshot(
     status: str = "completed",
     adapter_metadata: Optional[AdapterMetadata] = None,
     manual_reason: Optional[str] = None,
+    force: bool = False,
 ) -> Optional[str]:
     """See module docstring + spec §4.3. Returns snapshot SHA or None."""
     try:
@@ -98,8 +99,10 @@ def take_snapshot(
 
             new_tree = git_ops.preview_tree(repo, existing)
 
-            # Tree-SHA dedupe (skip for manual; skip when adapter session is new).
-            if (trigger != "manual" and adapter_metadata is None
+            # Tree-SHA dedupe (skip for manual; skip when adapter session is
+            # new; skip when force=True so run_tests.py always logs a result
+            # even if the tracked tree is unchanged from the prior snapshot).
+            if (trigger != "manual" and not force and adapter_metadata is None
                     and new_tree is not None):
                 prev_tip = git_ops.read_auto_track_tip(repo)
                 if prev_tip:

@@ -151,6 +151,10 @@ class BundleTestRunner:
         if self._capture_ctx is not None:
             env["CAPTURE_SESSION_ID"] = self._capture_ctx.session_id
             env["CAPTURE_STARTED_AT"] = str(self._capture_ctx.started_at)
+            # Always record run_tests.py results, even when the tracked tree
+            # is unchanged from the previous snapshot. The inner pytest's
+            # conftest reads this and forwards it through session_finish.
+            env["CAPTURE_FORCE_SNAPSHOT"] = "1"
         return env
 
     def _count_tests(self) -> int:
@@ -950,7 +954,11 @@ class BundleTestRunner:
                 self.restore_backup()
             if _capture is not None and self._capture_ctx is not None:
                 status = "completed" if exit_code == 0 else f"pytest_exit_{exit_code}"
-                _capture.session_finish(self.root_dir, self._capture_ctx, status=status)
+                # force=True ensures a snapshot lands even when the inner
+                # pytest crashed before its sessionfinish hook fired and the
+                # tracked tree happens to be unchanged.
+                _capture.session_finish(self.root_dir, self._capture_ctx,
+                                        status=status, force=True)
 
 
 def main():

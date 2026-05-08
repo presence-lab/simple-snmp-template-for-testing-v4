@@ -1,6 +1,6 @@
 # Process Tracking in This Assignment
 
-This project automatically records a snapshot of your code at three moments: when you run the tests, when you run any other Python script in the project venv, and when you make a git commit. These snapshots live on a dedicated ref `refs/auto-track/snapshots` in your repository and are pushed to the configured remote — they do **not** land on your branches (`main`, feature branches, etc.), so your normal `git log` only shows your intentional commits.
+This project automatically records a snapshot of your code at three moments: when you run the tests, when you run any other Python script in the project venv, and when you make a git commit. Locally these snapshots live on a dedicated ref `refs/auto-track/snapshots` and are pushed to the `auto-track` branch on your remote. They do **not** land on `main` or your feature branches, so your normal `git log` on a working branch only shows your intentional commits. The `auto-track` branch is visible in your repo's branch list on GitHub — that's expected; it's where your instructor reads your development history from.
 
 Audit your local trail with `python -m tests._capture.audit`.
 
@@ -50,18 +50,25 @@ python -m tests._capture.audit
 
 This summarizes every snapshot recorded on `refs/auto-track/snapshots`, including timestamps, test counts, and the commit SHA your `HEAD` pointed at during each run.
 
-If you prefer raw git commands, the snapshot trail lives on a dedicated ref and is not visible from a normal `git log`:
+If you prefer raw git commands, the snapshot trail lives on its own ref locally and on the `auto-track` branch remotely. To inspect it locally:
 
 ```bash
 git log refs/auto-track/snapshots --format="%h %cI %s"
 git show <sha>          # full body of a single snapshot
 ```
 
+To inspect the pushed copy:
+
+```bash
+git fetch origin auto-track
+git log origin/auto-track --format="%h %cI %s"
+```
+
 You'll see entries whose subject lines begin with `test-run:`.
 
 ## Filtering test-run commits out of your log
 
-Under v3, capture commits are stored on `refs/auto-track/snapshots` rather than on your branches, so your normal `git log` already shows only your own intentional commits — no filtering needed.
+Capture commits are stored on `refs/auto-track/snapshots` (locally) and on the `auto-track` branch (remotely) rather than on your working branches, so your normal `git log` on `main` or a feature branch already shows only your own intentional commits — no filtering needed.
 
 For backwards compatibility with v1 repositories that may still have `test-run:` commits on `main` from an earlier semester, this wrapper is still provided:
 
@@ -100,4 +107,4 @@ Both routes still produce a `test-run:` snapshot on `refs/auto-track/snapshots`.
 
 ## Academic integrity note
 
-Tampering with the capture layer (deleting `tests/conftest.py`, editing `tests/_capture/`, force-updating or deleting `refs/auto-track/snapshots`) is treated the same as any other academic integrity violation and is easy to detect. If you have a legitimate reason to disable capture on a specific machine (for example, a machine where git push authentication cannot be set up), contact your instructor rather than removing the hook.
+Tampering with the capture layer (deleting `tests/conftest.py`, editing `tests/_capture/`, force-updating or deleting your local `refs/auto-track/snapshots` ref, or attempting to force-push or delete the remote `auto-track` branch) is treated the same as any other academic integrity violation and is easy to detect. The remote `auto-track` branch is protected by an org-level rule that blocks force-pushes and deletions; attempts to bypass that protection are logged. If you have a legitimate reason to disable capture on a specific machine (for example, a machine where git push authentication cannot be set up), contact your instructor rather than removing the hook.

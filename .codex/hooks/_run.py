@@ -29,6 +29,13 @@ from pathlib import Path
 HOOK_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = HOOK_DIR.parent.parent
 
+# Hooks whose interpreter exit should NOT trigger an auto-track snapshot.
+# Their event data is still written to the trace JSONLs and will be folded
+# into the next snapshot (PostToolUse, PermissionRequest, UserPromptSubmit,
+# or Stop). Setting _CAPTURE_SUBPROCESS=1 is read by venv sitecustomize.py
+# to skip its atexit snapshot trigger.
+SNAPSHOT_SUPPRESSED_HOOKS = {"pre_tool_use", "session_start"}
+
 
 def _venv_python() -> Path | None:
     if os.name == "nt":
@@ -57,6 +64,9 @@ def main() -> int:
     hook_script = HOOK_DIR / f"{hook_name}.py"
     if not hook_script.is_file():
         return 0
+
+    if hook_name in SNAPSHOT_SUPPRESSED_HOOKS:
+        os.environ["_CAPTURE_SUBPROCESS"] = "1"
 
     venv = _venv_python()
     if venv is not None and not _running_in_venv():

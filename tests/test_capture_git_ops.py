@@ -105,7 +105,7 @@ def test_fetch_auto_track_no_remote_ref_returns_none(tmp_git_repo_with_bare_remo
 
 def test_fetch_auto_track_pulls_remote_ref(tmp_git_repo_with_bare_remote):
     work, bare = tmp_git_repo_with_bare_remote
-    # Push a snapshot ref to the bare remote
+    # Push a snapshot to the bare remote's refs/heads/auto-track branch
     head_sha = subprocess.run(
         ["git", "-C", str(work), "rev-parse", "HEAD"],
         capture_output=True, text=True, check=True).stdout.strip()
@@ -114,7 +114,7 @@ def test_fetch_auto_track_pulls_remote_ref(tmp_git_repo_with_bare_remote):
          "refs/auto-track/snapshots", head_sha], check=True)
     subprocess.run(
         ["git", "-C", str(work), "push", "origin",
-         "refs/auto-track/snapshots:refs/auto-track/snapshots"], check=True)
+         "refs/auto-track/snapshots:refs/heads/auto-track"], check=True)
     # Drop the local ref so fetch is the only way to get it
     subprocess.run(
         ["git", "-C", str(work), "update-ref", "-d",
@@ -206,8 +206,17 @@ def test_pick_first_parent_origin_dominates(tmp_git_repo):
         cwd=tmp_git_repo, check=True)
     assert git_ops.pick_first_parent(tmp_git_repo) == sha_b
 
-def test_pick_first_parent_divergence_picks_local(tmp_git_repo):
-    """When neither tip dominates, local wins (push will surface non-FF)."""
+def test_pick_first_parent_divergence_auto_recovers_to_origin(tmp_git_repo):
+    """When neither tip dominates, auto-recover: reset local to origin and
+    return origin so the next snapshot fast-forwards. Records the dropped
+    commits in .test-runs.log so the instructor mirror can audit.
+
+    Rationale: students don't read git error messages and don't understand
+    how to resolve divergence. Letting local stay diverged means every push
+    fails as non-FF and process-tracking silently rots. Self-healing is the
+    student-friendly behavior; only the auto-track ref moves, so no student
+    code or working-tree state is affected.
+    """
     sha_a = subprocess.run(
         ["git", "rev-parse", "HEAD"], cwd=tmp_git_repo,
         capture_output=True, text=True, check=True).stdout.strip()
@@ -232,7 +241,14 @@ def test_pick_first_parent_divergence_picks_local(tmp_git_repo):
     subprocess.run(
         ["git", "update-ref", git_ops.AUTO_TRACK_ORIGIN_TIP_REF, sha_remote],
         cwd=tmp_git_repo, check=True)
-    assert git_ops.pick_first_parent(tmp_git_repo) == sha_local
+
+    assert git_ops.pick_first_parent(tmp_git_repo) == sha_remote
+    # Local was reset to origin so subsequent snapshots fast-forward.
+    assert git_ops.read_auto_track_tip(tmp_git_repo) == sha_remote
+    # Audit trail records the dropped local commit.
+    log = (tmp_git_repo / ".test-runs.log").read_text(encoding="utf-8")
+    assert "divergence-recovered" in log
+    assert sha_local[:8] in log
 
 
 def test_snapshot_to_auto_track_first_ever_creates_initial_commit(tmp_git_repo):
@@ -425,7 +441,7 @@ def test_snapshot_fresh_clone_with_origin_tip_succeeds(tmp_git_repo_with_bare_re
     assert snap1 is not None
     push = subprocess.run(
         ["git", "-C", str(work), "push", "origin",
-         f"{git_ops.AUTO_TRACK_REF}:{git_ops.AUTO_TRACK_REF}"],
+         f"{git_ops.AUTO_TRACK_REF}:refs/heads/auto-track"],
         capture_output=True, text=True)
     assert push.returncode == 0, push.stderr
     # Simulate a fresh clone on machine 2: drop the local snapshot ref so
@@ -466,7 +482,7 @@ def test_push_auto_track_background_is_fire_and_forget(tmp_git_repo_with_bare_re
     while time.time() < deadline:
         result = subprocess.run(
             ["git", "-C", str(bare), "rev-parse", "--verify",
-             "refs/auto-track/snapshots"],
+             "refs/heads/auto-track"],
             capture_output=True, text=True)
         if result.returncode == 0:
             break

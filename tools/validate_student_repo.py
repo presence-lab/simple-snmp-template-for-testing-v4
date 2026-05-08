@@ -38,6 +38,12 @@ def main() -> int:
     if removed_marker.exists():
         warnings.append(".removed-for-students is still present")
 
+    # INSTRUCTOR_SETUP.md is the org-Ruleset / mirror runbook; it must never
+    # ship to students. create-assignment.sh excludes it via allow-list, so
+    # this is a defensive check against accidental drift.
+    if (root / "INSTRUCTOR_SETUP.md").exists():
+        errors.append("INSTRUCTOR_SETUP.md is present; this is an instructor-only file")
+
     readme_path = root / "README.md"
     if not readme_path.exists():
         errors.append("README.md is missing")
@@ -84,6 +90,8 @@ def main() -> int:
             "tools/INTEGRITY_HASHES.txt",
             ".github/workflows/integrity.yml",
             "PROCESS_TRACKING.md",
+            "AGENTS.md",
+            "AI_POLICY.md",
             ".codex/config.toml",
             ".codex/hooks/_common.py",
             ".codex/hooks/stop.py",

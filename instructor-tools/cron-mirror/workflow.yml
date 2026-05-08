@@ -1,0 +1,64 @@
+# Drop this into .github/workflows/mirror.yml on the INSTRUCTOR-OWNED
+# mirror repo (NOT the student-facing template). Configure the secrets
+# named below in Settings -> Secrets and variables -> Actions on that repo.
+#
+# Required secrets:
+#   CLASSROOM_TOKEN   PAT (or App installation token) with:
+#                       - read access to all student repos in the org
+#                       - write access to this mirror repo
+#
+# Required variables (Settings -> Secrets and variables -> Actions -> Variables):
+#   CLASSROOM_ORG     The GitHub org hosting student repos (e.g., clemson-cpsc-3600)
+#   ASSIGNMENT_PREFIX The prefix that all student repos for this assignment share
+#                       (e.g., assignment-snmp-2026)
+#   MIRROR_REMOTE     URL of THIS mirror repo (e.g., https://github.com/your-name/snmp-mirror.git)
+#
+# The script never touches student repos beyond fetching. It pushes only
+# into this mirror, under refs/students/<student>/...
+
+name: Mirror student auto-track refs
+
+on:
+  schedule:
+    - cron: '0 * * * *'   # hourly; tighten or loosen as needed
+  workflow_dispatch:       # manual trigger for ad-hoc grading sweeps
+
+permissions:
+  contents: write          # push to this mirror repo
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure git identity
+        run: |
+          git config --global user.name  "auto-track mirror"
+          git config --global user.email "mirror@noreply.local"
+
+      - name: Run mirror script
+        env:
+          GH_TOKEN: ${{ secrets.CLASSROOM_TOKEN }}
+        run: |
+          chmod +x instructor-tools/cron-mirror/mirror.sh
+          mirror_url="${{ vars.MIRROR_REMOTE }}"
+          mirror_url_with_token="${mirror_url/https:\/\//https:\/\/x-access-token:$GH_TOKEN@}"
+          ./instructor-tools/cron-mirror/mirror.sh \
+              "${{ vars.CLASSROOM_ORG }}" \
+              "${{ vars.ASSIGNMENT_PREFIX }}" \
+              "$mirror_url_with_token"
+
+      - name: Generate anomaly digest
+        run: |
+          python3 instructor-tools/cron-mirror/anomaly_report.py \
+              digest-out/per-student.jsonl > digest-out/report.md
+          cat digest-out/report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload digest artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mirror-digest-${{ github.run_number }}
+          path: digest-out/
+          retention-days: 90
