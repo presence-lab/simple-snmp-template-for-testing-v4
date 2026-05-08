@@ -191,8 +191,15 @@ def session_start(repo: Path, per_test_timeout: float = 30.0,
     )
 
 
-def session_finish(repo: Path, ctx: SessionContext, status: str = "completed") -> None:
-    """Called by pytest_sessionfinish. Delegates to orchestrator.take_snapshot."""
+def session_finish(repo: Path, ctx: SessionContext, status: str = "completed",
+                   force: bool = False) -> None:
+    """Called by pytest_sessionfinish. Delegates to orchestrator.take_snapshot.
+
+    force=True bypasses the orchestrator's tree-SHA dedupe so a run_tests.py
+    invocation always records its result, even when the tracked tree matches
+    the previous snapshot. Session-id dedupe is unaffected, so the wrapper
+    + inner-pytest pair still produces a single commit per invocation.
+    """
     try:
         ctx.finalize_bundles()
         ctx.result.duration_seconds = time.time() - ctx.started_at
@@ -203,6 +210,7 @@ def session_finish(repo: Path, ctx: SessionContext, status: str = "completed") -
             test_result=ctx.result,
             status=status,
             adapter_metadata=None,
+            force=force,
         )
     finally:
         state.finish_session(repo, ctx.session_id)

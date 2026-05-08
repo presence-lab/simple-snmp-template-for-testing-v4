@@ -129,4 +129,6 @@ def pytest_sessionfinish(session, exitstatus):
     except (TypeError, ValueError):
         code = -1
     status = _EXIT_STATUS.get(code, f"pytest_exit_{code}")
-    capture.session_finish(_PROJECT_ROOT, _SESSION_CTX, status=status)
+    import os as _os
+    force = _os.environ.get("CAPTURE_FORCE_SNAPSHOT") == "1"
+    capture.session_finish(_PROJECT_ROOT, _SESSION_CTX, status=status, force=force)

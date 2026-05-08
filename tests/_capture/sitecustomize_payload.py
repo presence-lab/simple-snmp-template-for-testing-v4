@@ -51,6 +51,8 @@ def _should_skip():
 
 
 def _trigger_snapshot():
+    if _should_skip():
+        return
     try:
         root = _find_project_root()
         if root is None:
