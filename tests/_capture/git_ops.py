@@ -49,7 +49,17 @@ def push_auto_track_background(repo: Path, log_path: Path) -> None:
     """Detached push of refs/auto-track/snapshots. Mirrors v1 push_background
     pattern. Best-effort -- never raises (open() failures and Popen failures
     both caught locally; callers can rely on this being safe to invoke even
-    on a disk-full / permission-denied system)."""
+    on a disk-full / permission-denied system).
+
+    Pushes to two destinations atomically:
+      - refs/auto-track/snapshots (custom ref, hidden from GitHub UI)
+      - refs/heads/auto-track     (real branch, protectable via Ruleset)
+
+    The branch destination is what GitHub's Rulesets attach to so the
+    instructor-org ruleset can block force-pushes and deletions. --atomic
+    ensures both refs update or neither does, so a force-push rejected on
+    the protected branch can't leave the unprotected custom ref ahead.
+    """
     env = {**os.environ, **GIT_ENV}
     if run_git(["remote", "get-url", "origin"], cwd=repo, timeout=5.0).returncode != 0:
         return
@@ -71,8 +81,9 @@ def push_auto_track_background(repo: Path, log_path: Path) -> None:
             kwargs["start_new_session"] = True
         try:
             subprocess.Popen(
-                ["git", "push", "origin",
-                 f"{AUTO_TRACK_REF}:{AUTO_TRACK_REF}"],
+                ["git", "push", "--atomic", "origin",
+                 f"{AUTO_TRACK_REF}:{AUTO_TRACK_REF}",
+                 f"{AUTO_TRACK_REF}:refs/heads/auto-track"],
                 **kwargs,
             )
         except OSError:
